@@ -1,3 +1,11 @@
+# Derived and output files
+data_derived/
+output/
+
+# RMD output
+*.pdf
+*.html
+
 # History files
 .Rhistory
 .Rapp.history
