@@ -1,0 +1,27 @@
+source,river,species,mark,life stage,harvest,abund,ci.low,ci.high
+2013,lkg,chs,mark,jack,harvest,132,47,217
+2013,imn,chs,mark,jack,harvest,31,11,66
+2013,imn,chs,mark,adult,harvest,30,10,64
+2013,lkg,chs,unmark,adult,release,16,6,35
+2013,lkg,chs,unmark,jack,release,7,1,18
+2013,lkg,chs,mark,adult,release,40,18,63
+2013,imn,chs,unmark,adult,release,11,3,26
+2013,imn,chs,unmark,jack,release,21,6,50
+2013,lkg,but,unmark,adult,release,32,8,67
+2013,imn,but,unmark,adult,release,6,4,12
+2015,lkg,chs,mark,adult,harvest,124,82,166
+2015,lkg,chs,mark,jack,harvest,47,21,73
+2015,lkg,chs,unmark,adult,release,30,11,49
+2015,lkg,chs,mark,adult,release,25,2,48
+2015,lkg,but,unmark,adult,release,37,13,61
+2015,imn,chs,mark,adult,harvest,73,35,111
+2015,imn,chs,mark,jack,harvest,39,4,74
+2015,imn,chs,unmark,adult,release,14,0,36
+2015,imn,chs,unmark,jack,release,5,0,15
+2015,imn,but,unmark,adult,release,25,7,43
+2015,wal,chs,mark,adult,harvest,134,4,263
+2015,wal,chs,mark,jack,harvest,3,0,9
+2015,wal,chs,unmark,adult,release,9,0,4
+2015,wal,chs,unmark,jack,release,28,17,39
+2015,wal,but,unmark,adult,release,10,1,19
+2015,ugr,but,unmark,adult,release,3,0,25

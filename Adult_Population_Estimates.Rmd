@@ -1,0 +1,145 @@
+---
+title: "LCM adult population estimates"
+date: "2020-06-19"
+output: html_notebook
+---
+
+This notebook is a place to record metadata and explorations related to compiling adult population estimates for life cycle modeling, documenting how those estimates were calculated, and attempting to estimate uncertainty measures associated with the aggregate estimates. 
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# eventually can add setup file here
+library(dplyr)
+```
+
+## Mark-recapture
+Explain source of std formulas being used here. 
+Should we look into bootstrapping variance estimates instead? 
+
+## Redd expansions
+Three main sources of error/uncertainty in using redd counts to derive a population estimate, as is done for Minam: redd counting, expansions of redd counts, and the fish per redd multiplier (either fixed or calculated per year). 
+
+### 1. redd counting
+Neither the literature that I briefly looked into (including the Salmonid Field Protocols handbook) had an easily extractable estimate or method for calculating uncertainty values associated with redd counts. However, there is a very large literature and much collective experience on the subject, so I expect that further research could find something better.  
+
+JF also did not have a go-to answer for this question. He says that traditionally redd counts are treated as a census, and known without error, but of course we know that this is not actually the case. 
+Based on professional judgment and experience, JF estimates an inter-observer variability rate of **about 10%** for redd counts.  If I walk one reach and you walk the same reach, by how much might we expect our counts to differ? -> guess is that my count would be within +/- 10% of yours.  (Experience level of the observer can be a predictive covariate, but for this simple exercise, assume different experience levels wash out in the aggregate.) 
+
+So, how should that =/- 10% be applied? CV? SE of 0.5x10% to account for CI of 1.96 x SE. 
+
+### 2. expansions of redd counts
+It should be possible in many cases to replace simple expansions with linear regressions; or at least, to use those regressions to come up with some kind of uncertainty around the expansion factors. 
+
+### 3. fish per redd multiplier
+I believe Minam uses a static fish per redd estimate (not having any better source for this number), but need to check this. Check also what Feldhaus etal has to say about the redd expansions - source for this 3.2 number? And Kasey + Nadine's document. 
+JF also points out that it might make more sense to instead do *female spawners* per redd, instead of fish per redd. Then expand this number by prespawn mortality rate, and by estimated sex ratio. 
+
+What are fish per redd values in our other GR streams with decent mark-recapture population estimates? Maybe the range of values could provide an uncertainty. 
+
+Static 3.2 fish (inc jacks) per redd is supposedly based on yrs 1989 - 1997 at Imnaha. From the Imanaha gospel, here are the calculated fish (inc jacks) per redd above weir.
+```{r fish_per_redd, echo=FALSE}
+fish.redd <- data.frame(
+  year = 1989:1997,
+  pop = c(168, 306, 276, 577, 906, 141, 155, 204, 439),  #From SimpleBrood/Total Above the Weir, starting w/ 1989
+  redds = c(48, 91, 78, 130, 338, 74, 30, 72, 145))  #From Brood Data/Expanded redds above weir
+
+fish.redd <- mutate(fish.redd, fpr = pop/redds )
+
+```
+
+```{r}
+# Average fish per redd in this data set:
+  mean(fish.redd$fpr)  # Close but not exactly 3.2
+```
+```{r}
+# Std Deviation
+  sd(fish.redd$fpr)
+```
+```{r}
+# Avg CV
+  mean(sd(fish.redd$fpr)/fish.redd$fpr)
+```
+Based on this limited Imnaha dataset, we could assume a rough uncertainty value of **var = `r round(var(fish.redd$fpr), 3)`**, although I assume it would be better to use the full data set that we have for other streams. For now, use a draft version of the full adult data set (but probably pretty good for looking at fish per redd).
+
+```{r, echo=FALSE}
+adult <- read.csv("data_source/AdultAbundance.csv")
+adult <- select(adult, -starts_with("X"))
+
+# Calculate basic above-weir fish-per-redd
+adult <- mutate(adult, fpr = n.above.weir/redds.above)
+adult$fpr[adult$fpr==Inf] <- NA
+
+```
+Basic statistics for fish per redd across all sites years:
+```{r, echo=TRUE}
+mean(adult$fpr[adult$fpr], na.rm=TRUE)
+sd(adult$fpr, na.rm=TRUE)
+range(adult$fpr, na.rm=TRUE)
+```
+High SD seems to be driven by a few years with very high fpr values, all of them from UGR (which is compromised by inability to survey Vey Mdws):
+```{r, echo=FALSE}
+head(select(arrange(adult, desc(fpr)), population, return.year, n.above.weir, total.return.to.river, redds.above, redds.below, fpr))
+```
+Calculate fish per redd by population:
+```{r, message=FALSE, warning=FALSE}
+adult[adult$population!="Minam", ] %>%
+  group_by(population) %>%
+  summarize(n.yrs = n(), 
+            mean.fpr = mean(fpr, na.rm=TRUE),
+            sd.fpr = sd(fpr, na.rm=TRUE),
+            avg.cv = sd.fpr/mean.fpr)
+```
+Interesting that Lostine is so much higher than Catherine on average. Does this have more to do with biological differences or with operational differences?
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+ggplot(data=adult[adult$population!="Minam", ]) +
+  geom_boxplot(aes(x=population, y=fpr))
+
+# Plot against total population estimate
+ggplot(data=adult[adult$population!="UGR", ]) +
+  geom_point(aes(x=log(n.above.weir), y=fpr, color=population), size=2)  #log relationship looks pretty good
+
+# What about number of redds?
+ggplot(data=adult[adult$population!="UGR", ]) + #
+  geom_point(aes(x=log(redds.above), y=fpr, color=population), size=2)  #log relationship looks pretty good
+```
+That outlier Lostine value (high fpr, low population) is from 2013, seems to be driven mostly by an unusually large jack pop est (2x adult pop est in this year).
+
+FPR stats with UGR excluded:
+```{r, message=FALSE, warning=FALSE}
+mean(adult$fpr[adult$population!="UGR"], na.rm=TRUE)
+sd(adult$fpr[adult$population!="UGR"], na.rm=TRUE)
+# cv:
+  sd(adult$fpr[adult$population!="UGR"], na.rm=TRUE) / mean(adult$fpr[adult$population!="UGR"], na.rm=TRUE)
+```
+
+
+## Harvest data
+Populations experience both *sport harvest* and *tribal harvest*. Sport harvest estimates are based on creel surveys. *Feldhaus et al 2017* (LCSRP project report, I think), Appendix A, refers to *Yanke et al 2013* for a description of harvest sampling methodology. This document reports a method for calculating variance estimates, citing *Pollock et al 1994*. 
+
+I took the data from **Table 5**, which reports estimates for total harvest (both harvested and released) of CHS in GR tributaries, along with confidence intervals for each estimate, and compiled it into a clean table <data_harvest_GR2013-2015.csv>. This table also includes data from the equivalent table in *Bratcher et al 2015*. 
+
+Then we can use the reported CIs to back-calculate std error (se) and coefficient of variation (cv) associated with each estimate.
+
+```{r harvest_data_processing, echo=FALSE, warning=FALSE, message=FALSE}
+harvest <- read.csv("data_source/data_harvest_GR2013-2015.csv")
+
+# Back-calculate SE and CV
+harvest <- mutate(harvest, 
+                  se = (abund-ci.low)/1.96,
+                  cv = round(se/abund, 3) )
+```
+Use the average CV across harvest estimates as a standard uncertainty to attach to any harvest numbers:
+```{r harvest_uncertainty, echo=TRUE}
+# Avg CV
+  round(mean(harvest$cv), 3)
+```
+
+Limiting the data set to adult CHS only (exclude jacks, exclude BUT) produces a very similar estimate for mean CV (`r round(mean(harvest$cv[harvest$species=="chs" & harvest$life.stage=="adult"]), 3)`).
+
+Estimated tribal harvest numbers are reported to us, and the numbers are thought to be quite squishy (at least for Hat vs Nat ratios; absolute numbers may be more reliable?). For purposes of this analysis, and lacking any more precise information, combine sport + tribal harvest and assume the same `r round(mean(harvest$cv), 2)*100`% CV uncertainty rate applies to everthing.
+
+**Remaining questions:**
+
+- What about when harvest is reported as zero? Can we assume zero is known, or should we attach the same level of uncertainty to 0?
+
+- Is there a better way to attach uncertainty to tribal harvest? In terms of counts, only, this is thought to be more or less uncertain than sport harvest.  I could try to get a copy of the cited Oates and Sharma source for tribal harvest monitoring methods (cited in *Feldhaus et al 2017, App A*). 
