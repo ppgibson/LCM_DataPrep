@@ -1,0 +1,63 @@
+---
+title: "Dataset metadata"
+author: "Polly Gibson"
+date: '2020-06-26'
+output: html_notebook
+---
+
+Basic documentation info for data sets included in the data delivery for Grande Ronde Chinook life cycle modeling. Draft version for maintaining notes.
+Most initial text comes from the "metadata" tab of the xlsx file sent 2020-05-22. 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(kableExtra)
+```
+
+
+## 1. Adult abundance
+**Dataset notes:** This table provides two different versions of a "single estimate of total returning adults ", one for all returners and one for the number of fish in the population above the weir. [n.above.weir] represents ODFW's best estimate for the fish population size above the weir (if any); precise methods for calculating this value depend on data availability, sample size, and details of sampling operations for each population/year. 
+
+**Source notes:** 
+For Catherine, Lostine, and UGR 1997 - 2019 (ie, post weir), values were taken from the "gospel" spreadsheets compiled and maintained by Joseph Feldhaus (ODFW), using current versions as of 2020-06-26. "Total Above Weir", "Removed At Weir", and "Total Return to the River" tables from "Simple Brood" tab.  Harvest numbers have to come from "Brood Year Data" tab (except for Lostine).  
+
+For pre-weir years (1990 - 1996), values were taken from VSP archive data sets, equivalent to the Minam set described below. The presumed error described below also applies to Catherine Creek (UGR and Lostine look correct). Specific methods notes:
+
+- Catherine: [Spawners] tab. Total number of counted redds ([R]) is expanded by the obscure [Temporal expansion factor] (which is not detailed in the methods doc), then by the static 2.23 spawners per redd value (average measured 1998-2005 at CC), then by prespawn survival rate (static avg 0.9). 
+
+- UGR: [Spawners] tab. Total number of counted redds is expanded by spatial/temporal expansion factors, then by the static 3.2 spawners per redd value (based on Imnaha data, as for Minam; most documentation says "fish per redd", but as population numbers are later expanded by pre-spawn mortality rates for all populations that use the 3.2 fish per redd value, it seems that this should be interpreted as "spawners per redd" in this case), then by prespawn survival rate.
+
+- Lostine: This one is a little more complicated, since official population estimates are done for the full Wallowa-Lostine population. However, data flow diagrams indicate that the analysis process is the same as for Catherine and UGR: redds (no spatial/temporal expansion) expanded by static 3.2 spawners per redd, expanded by 0.9 prespawn survival rate. I got values from the [SpawnerReddEst] tab, [Total Est Lostine Spawners (K)], and expanded by 0.9 myself. 
+ 
+
+For Minam (all years), values were taken from the VSP spreadsheet (last updated 2019-11-07), [RperS_as_RTR] and [Recruitment calculations] tab.  (Recruitment calcs tab appears to have an error in column P, shouldn't it be using column J instead of column K? As the RperS tab does.)
+
+- ? Documentation describes lots of redd expansion procedures, and these could probably be traced in [Spawners] and [Multiple pass redds] tabs. But, looks like both Recruitment tabs are simply using [Spawners]![C], which uses only [Total New Redds]. Is this deliberate?
+
+- ? Confirm 2019 numbers are up to date.
+
+In progress:
+
+- basic methods documentation (redd exp vs mark-rec)
+
+- Uncertainty estimates and documentation
+
+**Fields**
+```{r}
+
+adult_fields_tbl <- data.frame(
+  Field = c("n.returned", "n.harvested", "n.removed", "n.above.weir"),
+  Features = c(
+    "Total estimated number of adult fish returning to the mouth of the tributary.  This number still includes fish that were removed at the weir; fish harvested in tribal or sport fisheries (large majority of harvest occurs downstream of the weir); and fish that spawned downstream of the weir and/or smolt trap (generally this only happens to a signficant degree in Lostine).  This is only one of many possible flavors for an estimated total returns value.  These numbers taken directly from SimpleBrood.[Total Return to the River].",
+    "Estimated total number of fish harvested from the tributary, including both tribal harvest and sport fishery harvest.  Lostine is the only population with a significant, consistent harvest rate. Almost all harvest occurs below the weir.", 
+    "Number of fish removed at the weir. This value is a direct count, not an estimate. ",
+    "Estimated number of fish above the weir. For Minam, this is based on an expansion from number of redds; for Catherine and Lostine, this is generally a mark-recapture estimate for adults (age 4+), with three-year-old numbers estimated via an approximate carcass recovery rate.  For UGR, a mark-recapture estimate is used when sample size is large enough, but in some years it is based on number of redds observed in index sections." 
+  )
+)
+
+kable(adult_fields_tbl) %>%
+  kable_styling(full_width = T, font_size = 9) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2) #, width = "30em"
+
+# source: http://haozhu233.github.io/kableExtra/awesome_table_in_html.html#column__row_specification
+```
