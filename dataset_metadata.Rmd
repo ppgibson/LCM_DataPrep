@@ -42,7 +42,7 @@ In progress:
 - Uncertainty estimates and documentation
 
 **Fields**
-```{r}
+```{r adult_fields_tbl}
 
 adult_fields_tbl <- data.frame(
   Field = c("n.returned", "n.harvested", "n.removed", "n.above.weir"),
@@ -55,6 +55,52 @@ adult_fields_tbl <- data.frame(
 )
 
 kable(adult_fields_tbl) %>%
+  kable_styling(full_width = T, font_size = 9) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2) #, width = "30em"
+
+# source: http://haozhu233.github.io/kableExtra/awesome_table_in_html.html#column__row_specification
+```
+
+## 2a. Adult individual - carcass recoveries
+**Dataset notes:** Data for all individual carcasses found in the target rivers (Catherine, Lostine, Minam, and UGR) since 1991 (earlier data is also available if wanted). Note that many of the carcasses were previously handled and processed at a weir (as indicated by [oppunch.present]=TRUE), so these fish will also have records in the individual weir data, but there is no way to definitively match individual marked carcasses to the corresponding individual weir record. 
+
+**Source notes:** Queried from the Chinook spawning ground survey database, maintained by Joseph and his project staff. I saved a query limiting carcass records to sites and years of interest. Then, I processed the exported data with an R script to perform minor data cleaning, primarily standardization of field names and codes.
+
+- ? Confirm above/below trap for archaic UGS 3.1 reaches.
+
+**Fields**
+```{r carcass_fields_tbl}
+
+carc_fields_tbl <- data.frame(
+  Field = c("surveydate", "pos.weir", "pos.trap", "sex", 
+            "origin", "forklength", "agedesignation", 
+            "age.best", "age.cwt", "age.scale", "age.key", "age.length", 
+            "prespawn", "oppunch.present", "oppunch.type", 
+            "siteid", "objective", "mark.recap.eligible"),
+  Features = c(
+    "Date when the carcass was found (usually as part of a spawning ground survey).",
+    "Position relative to weir. Was the carcass found above (upstream of) or below (downstream of) the adult weir?  NA for all Minam carcasses, because there is no Minam weir.", 
+    "Position relative to trap. Was the carcass found above (upstream of) or below (downstream of) the the smolt trap?  For Lostine and Catherine this is the same as [pos.weir], but for UGR the adult weir is located several km downstream of the smolt trap, so some survey reaches are above the weir but below the smolt trap.  Further, to add to the complication, during the years 1998-2006 the adult weir was in a different location, farther upstream; this weir location was above the smolt trap, so for 1998-2006 some survey reaches are below the weir but above the smolt trap.",
+    "Sex of the carcass, if known. F=Female, M=Male, Unk=Unknown.", 
+    "Hat (hatchery), Nat (natural), or Unk (unknown).", 
+    "Fork length (mm), if known.  Many carcasses are not measurable (e.g., only the head was found).",
+    "Categorizes recoveries into Adult (ie, 4+ years old) or Jack (ie, 3 years old) based on stream and year specific size breaks  Lostine Jack <631 mm, CC and UGR Jack<621 mm.",
+    "Best age estimate that is available for each individual fish. Preferred ages are: age.cwt > age.pit > age.scale > age.key > age.length.", 
+    "Fish age, as determined from coded wire tag, if known.",
+    "Fish age, as determined from reading scales. If multiple sources of scale age data are available, then the source considered more reliable is used here.",
+    "Fish age estimated based on a site- and year-specific age-length key. For fish without a known age (ie, age based on CWT/PIT/scale), an age is assigned to each individual semi-randomly, based on proportions of known ages in each size class. Only used starting in 2011.",
+    "Fish age estimated based on a very simple, deterministic length->age algorithm (for Lostine, at least, this is <630 mm = age 3; 630-680 mm = age 4; >680 mm = age 5).",
+    "Prespawn Morts, based on egg retention.  Only applies to female carcass recoveries.  PreSpawn=eggs retained, ie prespawn mort; Spawned=few eggs retained, ie successful spawner (presumably).", 
+    "Was an opercle punch(es) present? Yes, No, or Unk. Presence of an opercle punch indicates that the fish had been trapped and processed at a weir.",
+    "Type of opercle punch(es), eg, 1 right opercle punch and 2 left opercle punches. No attempt has been made to standardize codes or otherwise clean up this field.",
+    "Identifies the survey section/reach where the carcass was found.  Site numbering is ordered from upstream to downstream; so, for example, the site CATH3.1 is is upstream of site CATH7.2D.",
+    "Target of the effort/survey that found the carcass.  A value of Redd & Carcass in this field identifies standardized/formal spawning ground surveys; other values indicate alternative, non-standard (for carcass data) survey types.",
+    "Is the carcass eligible for use in a mark-recapture estimate of population size? Generally, carcasses with unknown oppercle punch (ie, unknown whether they are marked) or carcasses found on non-standard surveys (especially via radio-telemetry) are not usable in mark-recapture calculations. Additionally, there are also more obscure cases of ineligible carcasses, typically determined from the specific opercle markings relative to details of weir operations and marks at that site and year. This field is manually assigned and maintained by Joseph."
+  )
+)
+
+kable(carc_fields_tbl) %>%
   kable_styling(full_width = T, font_size = 9) %>%
   column_spec(1, bold = T, border_right = T) %>%
   column_spec(2) #, width = "30em"

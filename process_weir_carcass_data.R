@@ -125,7 +125,7 @@ write.csv(weir.data, "data_weir_cleaned.csv", row.names=FALSE)
 
 
 ## ---- CARCASS DATA ----
-carc.raw <- read.csv("data_carcass_export_20200519.csv", stringsAsFactors=FALSE)
+carc.raw <- read.csv("data_source\\data_carcass_export.csv", stringsAsFactors=FALSE)
 
 carc <- carc.raw
 
@@ -141,8 +141,8 @@ table(carc$river)
 carc$surveydate <- ymd(ymd_hms(carc$surveydate))
 
 # Above/below data  
-carc <- rename(carc, 
-               pos.weir = aboveorbelowweir,
+carc <- mutate(carc, 
+               pos.weir = aboveorbelowweir,  #save original values so that they can be referred to for pos.trap classification
                pos.trap = aboveorbelowrst)
 
   # Weir first
@@ -151,8 +151,9 @@ carc <- rename(carc,
   carc$pos.weir[carc$pos.weir=="Below Weir"] <- "below"
   carc$pos.weir[carc$pos.weir=="Diversion"] <- "above"   #Assume for now that all those LOS diversions are above weir/trap. Alternatively, diversion carcasses could be filtered out.
   carc$pos.weir[carc$pos.weir=="Lostine Weir"] <- "on.weir"
-  carc$pos.weir[carc$pos.weir=="No Weir"] <- NA
-  carc$pos.weir[carc$pos.weir=="Prior to weir construction"] <- "before.weir"
+  carc$pos.weir[carc$pos.weir=="No Weir"] <- "no.weir"
+  carc$pos.weir[carc$pos.weir=="Prior to weir construction"] <- "no.weir"
+  carc$pos.weir[carc$year < 1997] <- "no.weir"  #Any carcass record from pre-1997 should just be no weir.
   
   # RST 
   table(carc$pos.trap)
@@ -165,18 +166,21 @@ carc <- rename(carc,
     # Minam
   carc$pos.trap[carc$population=="Minam"] <- "above"  #Essentially, all of Minam is above trap
   
-    # Los 
-  carc$pos.trap[carc$population %in% c("Lostine", "Catherine")] <- 
-    carc$pos.weir[carc$population %in% c("Lostine", "Catherine")]  # To start, assume that CC and LOS sites match weir
-  carc$pos.trap[carc$pos.trap=="on.weir"] <- "below"  #Lostine weir is below trap, so all the on.weir fish are "below".
+    # Los / CC
+  carc$pos.trap[carc$population %in% c("Lostine", "Catherine") & carc$aboveorbelowweir=="Above Weir"] <- "above" # To start, assume that CC and LOS sites match weir
+  carc$pos.trap[carc$population %in% c("Lostine", "Catherine") & carc$aboveorbelowweir=="Below Weir"] <- "below" 
+
+  carc$pos.trap[carc$population=="Lostine" & carc$pos.weir=="on.weir"] <- "below"  #Lostine weir is below trap, so all the on.weir fish are "below".
+  carc$pos.trap[carc$aboveorbelowweir=="Diversion"] <- "above"   #Assume for now that all those LOS diversions are above weir/trap.
+  carc$pos.trap[carc$population=="Lostine" & carc$aboveorbelowweir=="BeforeWeir"] <- "below"  #This is reach LOS8, goes above and below trap location; but, majority of stream length is below trap so assume carcass location is below trap.
   
   # Pre-weir CC
-  carc$pos.trap[carc$pos.trap=="before.weir"] <- "above"  #Looking at avg carcass numbers for survey sections, it looks like usually substantially more carcasses are found above the trap than below the trap in this joint section.
+  carc$pos.trap[carc$population=="Catherine" & 
+                  carc$aboveorbelowweir=="Prior to weir construction"] <- "above"  #Looking at avg carcass numbers for survey sections, it looks like usually substantially more carcasses are found above the trap than below the trap in this joint section.
   
-  # Missing data -> should be fixed with new export
+  # Any missing values?
   filter(carc, pos.trap=="")
-  carc$pos.trap[carc$pos.trap==""] <- "above"
-  
+
 # Survey type...probably not necessary, but I'll keep it anyway 
   table(carc$survey.type)
   carc$survey.type <- tolower(carc$survey.type)
@@ -195,6 +199,7 @@ carc <- rename(carc,
   table(carc$origin)
   carc$origin[carc$origin %in% c("", "None", "HON")] <- "Unk"
   carc$origin[carc$origin=="SNP"] <- "Hat"  # Safety net pgm seems to be a particular type of hatchery operation
+  carc$origin[carc$origin=="DS.Hat"] <- "Hat"  #Hatchery origin determined by scale analysis
   
 # Age
   carc <- rename(carc, 
@@ -247,73 +252,4 @@ carc <- rename(carc,
                          agedesignation, age.best, age.cwt, age.scale, age.key, age.length,
                          prespawn, oppunch.present, oppunch.type, objective, mark.recap.eligible)
 # Output file
-write.csv(carcass.data, "data_carcass_cleaned.csv", row.names=FALSE)
-
-## JUVENILE ABUNDANCE: Process VSP DB data
-# Take data export prepared by KB and reformat into standardized format
-# for LCM data request.
-
-## ---- SETUP ---- 
-# Libraries
-  library(lubridate)
-  library(dplyr)
-  library(reshape2)
-
-# Make table display NAs
-  table = function (..., useNA = 'ifany') base::table(..., useNA = useNA)
-
-
-## ---- PROCESS DATA ---- 
-juv.raw <- read.csv("JuvOut_fromKBexportt.csv", stringsAsFactors=FALSE)
-  
-juv <- juv.raw
-colnames(juv) <- tolower(colnames(juv))
-
-# Population
-juv <- rename(juv, population=popabrev)
-table(juv$population)
-  juv$population[juv$population=="Catherine Creek"] <- "Catherine"
-  juv$population[juv$population=="Grande Ronde Upper Mainstem"] <- "UGR"
-  juv$population[juv$population=="Lostine River"] <- "Lostine"
-  juv$population[juv$population=="Minam River"] <- "Minam"
-  
-# Years
-juv <- rename(juv,
-              brood.year = broodyear,
-              mig.year = outmigrationyear)
-
-# Melt to full long form
-juv.long <- melt(data = select(juv, population, brood.year, mig.year, starts_with("migrants")), 
-                 id.vars = c("population", "brood.year", "mig.year", "comments_migrants"))
-
-  # Remove the total CI value
-  table(juv.long$variable)
-  juv.long <- filter(juv.long, variable!="migrantstotal_95ci")
-  juv.long$variable <- droplevels(juv.long$variable)
-  
-  # Add season variable
-  juv.long$season <- NA
-    juv.long$season[grep(pattern="late", x=juv.long$variable)] <- "spring"
-    juv.long$season[grep(pattern="early", x=juv.long$variable)] <- "fall"
-    
-  # Clarify type of value
-  juv.long$dat.type <- "abund.est"
-    juv.long$dat.type[grep(pattern="_95ci", x=juv.long$variable)] <- "abund.ci"
-    
-  # Cast back out, partially
-  juv.data <- dcast(juv.long, 
-                    population + brood.year + mig.year + season ~ dat.type, 
-                    value.var="value")
-  
-# Recalculate SE from reported +/- CI value
-  juv.data <- mutate(juv.data,
-                     abund.se = abund.ci/1.96)
-  
-## ---- OUTPUT ----
-# Select and reorder fields
-  juv.abund.data <- select(juv.data, 
-                           popualation, brood.year, mig.year, season,
-                           abund.est, abund.se)
-  
-# Write output
-  write.csv(juv.abund.data, "data_JuvAbund_cleaned.csv", row.names=FALSE)
+write.csv(carcass.data, "data_sets\\02a_adult_indiv_carcass.csv", row.names=FALSE)
